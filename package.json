@@ -1,0 +1,88 @@
+{
+  "name": "skarbiec",
+  "productName": "Skarbiec",
+  "version": "1.10.3",
+  "description": "Szyfrowany skarbiec kont pocztowych i licencji Office dla administratora",
+  "main": "main.js",
+  "author": "Tomasz Marchewka",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win portable nsis",
+    "dist:mac": "./build-mac.sh",
+    "dist:mac:arm64": "./build-mac.sh --arm64",
+    "dist:mac:x64": "./build-mac.sh --x64"
+  },
+  "dependencies": {
+    "exceljs": "4.4.0",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "pl.firma.skarbiec-kont-office",
+    "productName": "Skarbiec",
+    "files": [
+      "main.js",
+      "preload.js",
+      "excel.js",
+      "sms.js",
+      "ms365.js",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "portable": {
+      "artifactName": "Skarbiec-${version}-portable.exe"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "darkModeSupport": true,
+      "minimumSystemVersion": "11.0",
+      "artifactName": "Skarbiec-${version}-mac-${arch}.${ext}",
+      "extendInfo": {
+        "NSHumanReadableCopyright": "Administracja IT",
+        "NSAppleEventsUsageDescription": "Skarbiec używa aplikacji Wiadomości, aby wysyłać SMS-y z Twojego numeru firmowego przez połączonego iPhone’a."
+      }
+    },
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "afterPack": "build/adhoc-sign.js"
+  }
+}

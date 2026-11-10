@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skarbiec</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wallpaper" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
+
+<!-- Przyciski okna w stylu macOS (Windows) -->
+<div class="lights" id="lights">
+  <button class="light close" data-win="close" aria-label="Zamknij" title="Zamknij"><svg viewBox="0 0 10 10"><path d="M3 3l4 4M7 3l-4 4"/></svg></button>
+  <button class="light min" data-win="min" aria-label="Minimalizuj" title="Minimalizuj"><svg viewBox="0 0 10 10"><path d="M2.5 5h5"/></svg></button>
+  <button class="light max" data-win="max" aria-label="Maksymalizuj" title="Maksymalizuj"><svg viewBox="0 0 10 10"><path d="M3 6.5V3h3.5M7 3.5V7H3.5"/></svg></button>
+</div>
+
+<!-- Blokada -->
+<section id="lock" class="lock">
+  <div class="drag lock-drag"></div>
+  <form id="lockForm" class="lock-card glass" autocomplete="off">
+    <div class="lock-icon"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg></div>
+    <h1>Skarbiec</h1>
+    <p class="lock-app-ver" id="lockAppVer"></p>
+    <p id="lockLead" class="lock-lead"></p>
+    <input type="password" id="mp" class="field big" placeholder="Hasło główne" aria-label="Hasło główne">
+    <input type="password" id="mp2" class="field big" placeholder="Powtórz hasło główne" aria-label="Powtórz hasło główne" hidden>
+    <p class="err" id="lockErr" role="alert"></p>
+    <button class="btn primary wide" type="submit" id="lockBtn">Odblokuj</button>
+    <div class="kdf-prog" id="kdfLockProg" hidden><div class="kdf-track"><div class="kdf-fill"></div></div><span class="kdf-lbl"></span></div>
+    <div id="lockFoot" class="lock-foot"></div>
+  </form>
+  <p class="lock-ver" id="lockVer"></p>
+</section>
+
+<!-- Aplikacja -->
+<div id="app" class="app" hidden>
+  <aside class="sidebar">
+    <div class="drag side-top"></div>
+    <nav id="nav" class="nav"></nav>
+    <div class="side-foot">
+      <button class="side-btn ms-sync" id="msSyncBtn" type="button" hidden title="Pobierz teraz dane z Microsoft 365"><svg viewBox="0 0 24 24"><path d="M19 8.5A7.5 7.5 0 0 0 5.6 7M5 15.5A7.5 7.5 0 0 0 18.4 17"/><path d="M5 3.5V7h3.5M19 20.5V17h-3.5"/></svg><span id="msSyncTxt">Microsoft 365</span></button>
+      <button class="side-btn" id="importBtn" type="button"><svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></svg>Import z Excela</button>
+      <button class="side-btn" id="exportBtn" type="button"><svg viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19h14"/></svg>Eksport do Excela</button>
+      <button class="side-btn" id="settingsBtn" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></svg>Kopia i ustawienia</button>
+      <button class="side-btn" id="lockNow" type="button"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>Zablokuj</button>
+    </div>
+  </aside>
+
+  <section class="listpane">
+    <div class="toolbar drag">
+      <label class="search nodrag"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/></svg>
+        <input type="search" id="search" placeholder="Szukaj: nazwisko, e-mail, dział, telefon…" aria-label="Szukaj kont"></label>
+      <button class="icon-btn nodrag flt-btn" id="fltBtn" type="button" title="Filtry: licencja, dział, stanowisko, biuro" aria-label="Filtry" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 5.5h16l-6.2 7.3v5.4l-3.6 1.8v-7.2z"/></svg><span class="flt-n" id="fltN" hidden></span></button>
+      <button class="icon-btn nodrag" id="addBtn" type="button" title="Dodaj konto (Ctrl+N)" aria-label="Dodaj konto"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div class="filters" id="filters" hidden></div>
+    <div class="list-head" id="listHead"></div>
+    <ul id="list" class="list" role="listbox" aria-label="Konta" tabindex="0"></ul>
+  </section>
+
+  <main class="detail">
+    <div class="drag detail-top"></div>
+    <div id="detailBody" class="detail-body"></div>
+  </main>
+</div>
+
+<!-- Edytor -->
+<dialog id="editor" class="sheet editor">
+  <form id="editForm" autocomplete="off" novalidate>
+    <h2 id="editTitle">Nowe konto</h2>
+    <div class="grid2">
+      <label class="f"><span>Imię</span><input class="field" id="fFirst"></label>
+      <label class="f"><span>Nazwisko</span><input class="field" id="fLast"></label>
+    </div>
+    <label class="f"><span>Adres e-mail</span><input class="field" id="fEmail" type="email" spellcheck="false"></label>
+    <div class="f"><span>Hasło <em class="opt">(opcjonalne)</em></span>
+      <div class="inline">
+        <input class="field mono" id="fPass" type="password" spellcheck="false" aria-label="Hasło">
+        <button class="btn" type="button" id="fShow">Pokaż</button>
+        <button class="btn" type="button" id="fGen">Generuj</button>
+      </div>
+    </div>
+    <div id="altList" class="rows"></div>
+    <button class="link add" type="button" id="altAdd">+ Dodaj kolejne hasło</button>
+
+    <h3 class="sec">Aplikacje i strony <em class="opt">— Facebook, Instagram, inna poczta, Asana, Magento…</em></h3>
+    <div id="appList" class="rows apps-ed"></div>
+    <div class="chips" id="appQuick"></div>
+    <datalist id="dlApps"></datalist>
+
+    <div class="f"><span>Licencje</span>
+      <div class="lic-picker" id="fLics" role="group" aria-label="Licencje"></div>
+      <input class="field" id="fLicOther" placeholder="Inne licencje, oddzielone przecinkami" aria-label="Inne licencje">
+    </div>
+
+    <h3 class="sec">Dodatkowe dane</h3>
+    <div class="grid2">
+      <label class="f"><span>Nazwa wyświetlana</span><input class="field" id="fDisp"></label>
+      <label class="f"><span>Dział</span><input class="field" id="fDept" list="dlDept"></label>
+      <label class="f"><span>Stanowisko</span><input class="field" id="fJob" list="dlJob"></label>
+      <label class="f"><span>Biuro / lokalizacja</span><input class="field" id="fOffice" list="dlOffice"></label>
+      <label class="f"><span>Telefon</span><input class="field" id="fPhone" type="tel"></label>
+      <label class="f"><span>Telefon komórkowy</span><input class="field" id="fMobile" type="tel"></label>
+    </div>
+    <div id="extraList" class="rows"></div>
+    <button class="link add" type="button" id="extraAdd">+ Dodaj własne pole</button>
+    <datalist id="dlDept"></datalist><datalist id="dlJob"></datalist><datalist id="dlOffice"></datalist><datalist id="dlExtra"></datalist>
+
+    <label class="f"><span>Uwagi</span><textarea class="field" id="fNotes" rows="2" placeholder="Numer zgłoszenia, data utworzenia…"></textarea></label>
+    <p class="err" id="editErr" role="alert"></p>
+    <div class="sheet-foot">
+      <button class="btn" type="button" id="editCancel">Anuluj</button>
+      <button class="btn primary" type="submit">Zapisz</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Potwierdzenie -->
+<dialog id="confirmDlg" class="sheet narrow">
+  <div class="confirm-icon"><svg viewBox="0 0 24 24"><path d="M12 4 2.5 20h19z"/><path d="M12 10v4.5M12 17.2v.1"/></svg></div>
+  <h2 id="cTitle"></h2>
+  <p id="cMsg" class="muted"></p>
+  <div class="sheet-foot stack">
+    <button class="btn danger" type="button" id="cYes">Usuń</button>
+    <button class="btn" type="button" id="cNo">Anuluj</button>
+  </div>
+</dialog>
+
+<!-- Import -->
+<dialog id="importDlg" class="sheet wide">
+  <h2>Import z Excela</h2>
+  <p class="muted" id="impFile"></p>
+  <label class="f" id="impSheetWrap" hidden><span>Arkusz</span><select class="field" id="impSheet"></select></label>
+  <div class="group" id="impStats"></div>
+  <p class="hint" id="impMap"></p>
+  <div id="impErrors" class="imp-errors"></div>
+  <label class="check" id="impAddWrap"><input type="checkbox" id="impAdd" checked><span id="impAddLbl"></span></label>
+  <div id="impUpdWrap">
+    <label class="check"><input type="checkbox" id="impUpdate" checked><span id="impUpdateLbl"></span></label>
+    <div class="radios" id="impModeWrap">
+      <label class="check"><input type="radio" name="impMode" value="fill" checked><span>Tylko uzupełnij brakujące dane (nic nie zostanie nadpisane)</span></label>
+      <label class="check"><input type="radio" name="impMode" value="overwrite"><span>Nadpisz zapisane dane wartościami z pliku (puste komórki niczego nie kasują)</span></label>
+    </div>
+  </div>
+  <label class="check" id="impGenWrap"><input type="checkbox" id="impGen"><span id="impGenLbl"></span></label>
+  <label class="check" id="impAppsWrap" hidden><input type="checkbox" id="impApps"><span id="impAppsLbl"></span></label>
+  <div id="impExtraWrap" hidden>
+    <p class="sub-h">Pozostałe kolumny – zaimportuj jako dodatkowe pola:</p>
+    <div id="impExtra" class="lic-picker"></div>
+  </div>
+  <p class="hint">Rozpoznawane kolumny: Imię, Nazwisko, Nazwa wyświetlana, E-mail / Konto, Hasło, Hasło 2, 3…, Licencje, Dział, Stanowisko, Telefon, Telefon komórkowy, Biuro, Uwagi. Działa też eksport użytkowników z centrum administracyjnego Microsoft 365. Hasła nie są wymagane.</p>
+  <div class="sheet-foot">
+    <button class="btn" type="button" id="impCancel">Anuluj</button>
+    <button class="btn primary" type="button" id="impGo">Importuj</button>
+  </div>
+</dialog>
+
+<!-- Uzupełnianie danych wielu kont -->
+<dialog id="bulkDlg" class="sheet">
+  <form id="bulkForm" autocomplete="off">
+    <h2 id="bulkTitle">Uzupełnij dane</h2>
+    <label class="f"><span>Co zmienić</span><select class="field" id="bkField"></select></label>
+    <label class="f" id="bkLabelWrap" hidden><span>Nazwa pola</span><input class="field" id="bkLabel" list="dlExtra" placeholder="np. Numer karty"></label>
+    <label class="f"><span id="bkValueLbl">Wartość</span><input class="field" id="bkValue" list="dlBulk"></label>
+    <datalist id="dlBulk"></datalist>
+    <label class="check" id="bkOnlyEmptyWrap"><input type="checkbox" id="bkOnlyEmpty" checked><span>Tylko tam, gdzie pole jest puste</span></label>
+    <p class="err" id="bulkErr" role="alert"></p>
+    <div class="sheet-foot">
+      <button class="btn" type="button" id="bulkCancel">Anuluj</button>
+      <button class="btn primary" type="submit" id="bulkGo">Zastosuj</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Zmiana haseł wielu kont (generator + Microsoft 365) -->
+<dialog id="pwDlg" class="sheet wide">
+  <form id="pwForm" autocomplete="off">
+    <h2 id="pwTitle">Zmiana haseł</h2>
+    <p class="muted small" id="pwLead"></p>
+    <div class="group pw-gen" id="pwGen">
+      <div class="g-row"><span class="lbl">Długość</span><input type="range" id="pwLen" min="12" max="32" value="16" class="fill"><b class="pw-len" id="pwLenV">16</b></div>
+      <div class="g-row"><span class="lbl">Znaki</span><div class="radios-h">
+        <label class="check"><input type="checkbox" id="pwUp" checked><span>Wielkie litery</span></label>
+        <label class="check"><input type="checkbox" id="pwLow" checked><span>Małe litery</span></label>
+        <label class="check"><input type="checkbox" id="pwDig" checked><span>Cyfry</span></label>
+        <label class="check"><input type="checkbox" id="pwSym" checked><span>Znaki specjalne</span></label></div></div>
+      <div class="g-row"><span class="lbl">Przykład</span><span class="val pw" id="pwSample"></span>
+        <button class="btn small" type="button" id="pwReroll">Losuj</button></div>
+    </div>
+    <p class="muted small">Każde konto dostaje inne, losowe hasło. Bez podobnych znaków (0/O, 1/l/I). Dotychczasowe hasło zostanie zapisane jako „Poprzednie hasło”.</p>
+    <div class="pw-ms" id="pwMsBox">
+      <label class="check"><input type="checkbox" id="pwMs" checked><span><b>Zmień też w Microsoft 365</b> – nowe hasło zacznie obowiązywać od razu, a użytkownik zostanie wylogowany z pozostałych sesji.</span></label>
+      <label class="check" id="pwForceWrap"><input type="checkbox" id="pwForce"><span>Wymagaj zmiany hasła przy następnym logowaniu (hasło w Skarbcu będzie wtedy tymczasowe)</span></label>
+      <p class="pw-note" id="pwMsNote" hidden></p>
+    </div>
+    <ul class="group pw-list" id="pwList"></ul>
+    <progress id="pwProg" max="1" value="0" hidden></progress>
+    <p class="err" id="pwErr" role="alert"></p>
+    <div class="sheet-foot">
+      <button class="btn" type="button" id="pwExport" hidden>Eksportuj nowe hasła…</button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" id="pwCancel">Anuluj</button>
+      <button class="btn primary" type="submit" id="pwGo">Zmień hasła</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Przegląd bezpieczeństwa -->
+<dialog id="healthDlg" class="sheet wide">
+  <h2>Przegląd bezpieczeństwa</h2>
+  <div class="h-score" id="hScore"></div>
+  <div class="group" id="hRows"></div>
+  <div class="group">
+    <div class="g-row col"><div><b>Sprawdzenie wycieków haseł</b>
+      <small>Porównuje hasła z bazą ponad 900 mln haseł z wycieków (Have I Been Pwned). Hasła nie opuszczają komputera – wysyłane jest tylko
+        5 pierwszych znaków ich skrótu SHA-1, a serwis zwraca setki pasujących skrótów, wśród których program sam szuka dopasowania.</small></div>
+      <p class="muted small" id="hLeakState"></p>
+      <progress id="hLeakProg" max="1" value="0" hidden></progress>
+      <div class="row-btns"><button class="btn" id="hLeakGo" type="button">Sprawdź teraz</button></div></div>
+  </div>
+  <div class="group" id="hLicBox" hidden>
+    <div class="g-row col"><div><b>Wykorzystanie licencji w Microsoft 365</b><small id="hLicNote">Przypisane / kupione – z ostatniej synchronizacji.</small></div>
+      <div class="lic-usage" id="hLic"></div></div>
+  </div>
+  <div class="sheet-foot"><button class="btn" id="hLog" type="button">Dziennik zdarzeń…</button><span class="spacer"></span><button class="btn primary" id="hClose" type="button">Gotowe</button></div>
+</dialog>
+
+<!-- Dziennik zdarzeń -->
+<dialog id="logDlg" class="sheet wide">
+  <h2>Dziennik zdarzeń</h2>
+  <p class="muted small">Kto i kiedy korzystał ze skarbca: odblokowania, wyświetlenia i kopiowania haseł, zmiany, eksporty, SMS-y. Dziennik jest zaszyfrowany razem ze skarbcem (ostatnie 3000 zdarzeń).</p>
+  <input type="search" class="field" id="logQ" placeholder="Szukaj w dzienniku: konto, zdarzenie, data…">
+  <ul class="group log-list" id="logList"></ul>
+  <div class="sheet-foot"><button class="btn" id="logExport" type="button">Eksportuj do Excela…</button><span class="spacer"></span><button class="btn primary" id="logClose" type="button">Gotowe</button></div>
+</dialog>
+
+<!-- Karta dostępu -->
+<dialog id="cardDlg" class="sheet">
+  <form id="cardForm" autocomplete="off">
+    <h2 id="cardTitle">Karta dostępu</h2>
+    <p class="muted small">Kartka dla pracownika z adresem logowania, hasłem i krótką instrukcją. Jedna strona A4 na osobę.</p>
+    <label class="check"><input type="checkbox" id="cardPw" checked><span>Dołącz hasło</span></label>
+    <label class="check" id="cardAppsWrap"><input type="checkbox" id="cardApps" checked><span>Dołącz dostępy do aplikacji i stron</span></label>
+    <label class="check"><input type="checkbox" id="cardHow" checked><span>Dołącz instrukcję logowania i zmiany hasła</span></label>
+    <label class="f"><span>Dodatkowa informacja <i class="opt">— opcjonalnie, np. kontakt do działu IT</i></span><textarea class="field" id="cardNote" rows="2"></textarea></label>
+    <p class="muted small">Plik PDF z hasłem chroń jak hasło – po przekazaniu usuń go. Bezpieczniejszy jest bezpośredni wydruk.</p>
+    <div class="sheet-foot">
+      <button class="btn" type="button" id="cardCancel">Anuluj</button>
+      <button class="btn" type="button" id="cardPdf">Zapisz PDF…</button>
+      <button class="btn primary" type="submit" id="cardPrint">Drukuj…</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Dostęp do aplikacji dla wielu kont -->
+<dialog id="appBulkDlg" class="sheet">
+  <form id="appBulkForm" autocomplete="off" novalidate>
+    <h2 id="abTitle">Dodaj dostęp do aplikacji</h2>
+    <p class="muted small" id="abWho"></p>
+    <div class="grid2">
+      <label class="f"><span>Aplikacja lub strona</span><input class="field" id="abName" list="dlApps" placeholder="np. Asana"></label>
+      <label class="f"><span>Adres strony <em class="opt">(opcjonalny)</em></span><input class="field" id="abUrl" spellcheck="false" placeholder="np. panel.firma.pl"></label>
+    </div>
+    <div class="f"><span>Login</span>
+      <label class="check"><input type="radio" name="abLogin" value="email" checked><span>Adres e-mail konta</span></label>
+      <label class="check"><input type="radio" name="abLogin" value="local"><span>Część adresu przed @ (np. jan.kowalski)</span></label>
+      <label class="check"><input type="radio" name="abLogin" value="none"><span>Uzupełnię później</span></label>
+    </div>
+    <div class="f"><span>Hasło</span>
+      <label class="check"><input type="radio" name="abPw" value="gen" checked><span>Wygeneruj osobne, silne hasło dla każdej osoby (16 znaków)</span></label>
+      <label class="check"><input type="radio" name="abPw" value="none"><span>Bez hasła – uzupełnię później</span></label>
+    </div>
+    <p class="muted small" id="abSkip"></p>
+    <p class="err" id="abErr" role="alert"></p>
+    <div class="sheet-foot">
+      <button class="btn" type="button" id="abCancel">Anuluj</button>
+      <button class="btn primary" type="submit" id="abGo">Dodaj</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Wysyłanie hasła SMS-em -->
+<dialog id="smsDlg" class="sheet">
+  <form id="smsForm" autocomplete="off">
+    <h2>Wyślij hasło SMS-em</h2>
+    <p class="muted" id="smsFrom"></p>
+    <label class="f"><span>Numer odbiorcy</span><input class="field" id="smsTo" inputmode="tel" required></label>
+    <label class="f" id="smsPwWrap"><span>Które hasło</span><select class="field" id="smsPw"></select></label>
+    <label class="f"><span>Treść <i class="opt">— {hasło} zostanie podstawione przy wysyłce</i></span><textarea class="field" id="smsText" rows="3"></textarea></label>
+    <p class="sms-prev" id="smsPrev"></p>
+    <p class="muted small">SMS nie jest szyfrowany. Wysyłaj hasło tylko na numer, który na pewno należy do tej osoby.</p>
+    <p class="err" id="smsSendErr" role="alert"></p>
+    <div class="sms-manual" id="smsManual" hidden>
+      <p class="small">Możesz wysłać ręcznie: program skopiuje treść SMS (schowek wyczyści się po 60 s) i otworzy Wiadomości z tym odbiorcą — wklej <b>⌘V</b> i naciśnij <b>Enter</b>.</p>
+      <button class="btn" type="button" id="smsManualGo">Skopiuj treść i otwórz Wiadomości</button>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn" type="button" id="smsSendCancel">Anuluj</button>
+      <button class="btn primary" type="submit" id="smsGo">Wyślij SMS</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Ustawienia -->
+<dialog id="settings" class="sheet wide">
+  <h2>Kopia i ustawienia</h2>
+  <div class="group">
+    <div class="g-row"><div><b>Kopia zapasowa</b><small>Zaszyfrowany plik .skarbiec. Odczytasz go tylko hasłem głównym.</small></div>
+      <button class="btn" id="bkSave" type="button">Zapisz kopię…</button></div>
+    <div class="g-row"><div><b>Przywróć z kopii</b><small>Zastępuje obecną listę zawartością kopii.</small></div>
+      <button class="btn" id="bkLoad" type="button">Wybierz plik…</button></div>
+    <div class="g-row" id="bkPwRow" hidden><div class="fill"><input type="password" class="field" id="bkPw" placeholder="Hasło główne kopii"><p class="err" id="bkErr"></p></div>
+      <button class="btn primary" id="bkRestore" type="button">Przywróć</button></div>
+  </div>
+  <div class="group">
+    <div class="g-row"><div><b>Szablon importu</b><small>Pusty arkusz z kolumnami i listą licencji do wyboru.</small></div>
+      <button class="btn" id="tplSave" type="button">Zapisz szablon…</button></div>
+  </div>
+  <div class="group" id="msGroup">
+    <div class="g-row"><div class="fill"><b>Microsoft 365 – konto administratora</b><small id="msState"></small></div>
+      <button class="btn" id="msToggle" type="button">Podłącz…</button></div>
+    <div class="g-row col" id="msSetup" hidden>
+      <p class="muted small" id="msSetupInfo">Synchronizacja działa <b>tylko w jedną stronę</b>: program pobiera listę użytkowników, dane kontaktowe i przypisane licencje.
+        Niczego nie wysyła ani nie zmienia w Microsoft 365 – prosi wyłącznie o uprawnienia do odczytu (User.Read.All, Organization.Read.All).
+        Hasła, uwagi i własne pola zostają tylko w skarbcu.</p>
+      <p class="pw-note" id="msSetupWrite" hidden>Logujesz się, aby <b>włączyć zmianę haseł</b>. Program poprosi dodatkowo o uprawnienie User-PasswordProfile.ReadWrite.All
+        (tylko ustawianie haseł). Zaloguj się kontem administratora globalnego lub administratora uwierzytelniania uprzywilejowanego i wyraź zgodę w imieniu organizacji.
+        Hasła zmieniane są wyłącznie po Twoim poleceniu w oknie „Zmień hasła”, dla wskazanych kont.</p>
+      <label class="f"><span>Domena lub identyfikator organizacji</span><input class="field" id="msTenant" placeholder="np. firma.pl"></label>
+      <details class="adv"><summary>Własna aplikacja w Entra ID (opcjonalnie)</summary>
+        <p class="muted small">Domyślnie logowanie odbywa się przez aplikację Microsoftu „Microsoft Graph Command Line Tools”. Jeśli Twoja organizacja jej nie dopuszcza,
+          zarejestruj własną: Entra ID → Rejestracje aplikacji → Nowa rejestracja; Uwierzytelnianie → „Zezwalaj na przepływy klienta publicznego”: Tak;
+          Uprawnienia interfejsu API → Microsoft Graph → delegowane: User.Read.All, Organization.Read.All (do zmiany haseł także User-PasswordProfile.ReadWrite.All) → Udziel zgody administratora.</p>
+        <label class="f"><span>Identyfikator aplikacji (klienta)</span><input class="field mono" id="msClient" placeholder="00000000-0000-0000-0000-000000000000"></label>
+      </details>
+      <div class="ms-code" id="msCodeBox" hidden>
+        <p class="small">Na otwartej stronie Microsoftu wpisz kod i zaloguj się kontem administratora:</p>
+        <div class="code-row"><span class="code" id="msCode"></span><button class="btn small" id="msCopyCode" type="button">Kopiuj kod</button>
+          <button class="btn small" id="msOpenAgain" type="button">Otwórz stronę</button></div>
+        <p class="muted small">Przy pierwszym logowaniu zaznacz „Wyraź zgodę w imieniu organizacji”. Czekam na zalogowanie…</p>
+      </div>
+      <p class="err" id="msErr" role="alert"></p>
+      <div class="row-btns">
+        <button class="btn primary" id="msLogin" type="button">Zaloguj się w Microsoft 365</button>
+        <button class="btn" id="msCancel" type="button">Anuluj</button>
+      </div>
+    </div>
+    <div class="g-row col" id="msOn" hidden>
+      <label class="check"><input type="checkbox" id="msAuto"><span>Synchronizuj automatycznie: po odblokowaniu i co 15 minut</span></label>
+      <label class="check"><input type="checkbox" id="msSkipDisabled"><span>Pomijaj konta z zablokowanym logowaniem (np. skrzynki współdzielone)</span></label>
+      <div class="ms-write"><div class="fill"><b>Zmiana haseł w Microsoft 365</b><small id="msWriteState"></small></div>
+        <button class="btn" id="msWriteBtn" type="button">Włącz…</button></div>
+      <p class="err" id="msOnErr" role="alert"></p>
+      <div class="row-btns">
+        <button class="btn primary" id="msSyncNow" type="button">Synchronizuj teraz</button>
+        <button class="btn" id="msOff" type="button" style="color:var(--danger)">Odłącz</button>
+      </div>
+    </div>
+  </div>
+  <div class="group" id="smsGroup">
+    <div class="g-row"><div class="fill"><b>SMS z numeru firmowego</b><small id="smsState"></small></div>
+      <button class="btn" id="smsToggle" type="button">Podłącz…</button></div>
+    <div class="g-row col" id="smsSetup" hidden>
+      <div class="radios-h">
+        <label class="check"><input type="radio" name="smsProv" value="messages" checked><span><b>iPhone z numerem firmowym</b> (aplikacja Wiadomości na tym Macu, bez opłat)</span></label>
+        <label class="check"><input type="radio" name="smsProv" value="smsapi"><span><b>Bramka SMSAPI.pl</b> (konto firmowe w SMSAPI, płatne za SMS)</span></label>
+      </div>
+      <p class="muted small" id="smsHelp"></p>
+      <label class="f"><span>Mój numer firmowy</span><input class="field" id="smsNumber" placeholder="+48 600 000 000" inputmode="tel"></label>
+      <div id="smsApiWrap" hidden>
+        <label class="f"><span>Token API (OAuth) z panelu SMSAPI</span><input type="password" class="field" id="smsToken" autocomplete="off"></label>
+        <label class="f"><span>Nadawca <i class="opt">(opcjonalnie, nazwa zatwierdzona w SMSAPI)</i></span><input class="field" id="smsSender" maxlength="11"></label>
+      </div>
+      <p class="err" id="smsErr" role="alert"></p>
+      <div class="row-btns">
+        <button class="btn primary" id="smsConnect" type="button">Połącz</button>
+        <button class="btn" id="smsCancel" type="button">Anuluj</button>
+      </div>
+    </div>
+    <div class="g-row col" id="smsOn" hidden>
+      <label class="f"><span>Treść SMS <i class="opt">— {imię}, {nazwisko}, {email}, {hasło}, {opis}, {aplikacja}, {login}</i></span>
+        <textarea class="field" id="smsTpl" rows="2"></textarea></label>
+      <label class="check"><input type="checkbox" id="smsAscii"><span>Wysyłaj bez polskich znaków (więcej tekstu w jednym SMS)</span></label>
+      <p class="err" id="smsOnErr" role="alert"></p>
+      <div class="row-btns">
+        <button class="btn" id="smsTest" type="button">Wyślij SMS testowy na mój numer</button>
+        <button class="btn" id="smsOff" type="button" style="color:var(--danger)">Odłącz numer</button>
+      </div>
+    </div>
+  </div>
+  <div class="group" id="secGroup">
+    <div class="g-row col"><div><b>Bezpieczeństwo</b><small>Ustawienia są zapisane w skarbcu (zaszyfrowane).</small></div>
+      <label class="check"><input type="checkbox" id="secCapture"><span><b>Blokuj zrzuty i udostępnianie ekranu</b> – okno Skarbca będzie czarne na zrzutach ekranu, nagraniach oraz podczas udostępniania ekranu (Teams, Zoom, Meet). Ekran blokady jest chroniony zawsze.</span></label>
+      <label class="check"><input type="checkbox" id="secLockHide"><span>Blokuj skarbiec po zminimalizowaniu lub ukryciu okna</span></label>
+      <div class="sec-grid">
+        <label class="f"><span>Autoblokada po bezczynności</span><select class="field" id="secLockMin"><option value="1">1 min</option><option value="2">2 min</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option></select></label>
+        <label class="f"><span>Ukrywaj pokazane hasło po</span><select class="field" id="secReveal"><option value="10">10 s</option><option value="30">30 s</option><option value="60">1 min</option><option value="0">nie ukrywaj</option></select></label>
+        <label class="f"><span>Czyść schowek po</span><select class="field" id="secClip"><option value="15">15 s</option><option value="30">30 s</option><option value="60">1 min</option><option value="90">90 s</option></select></label>
+        <label class="f"><span>Hasło uznawane za stare po</span><select class="field" id="secAge"><option value="90">90 dniach</option><option value="180">180 dniach</option><option value="365">roku</option><option value="730">2 latach</option></select></label>
+      </div>
+      <p class="muted small">Na macOS skopiowane hasła są oznaczone jako poufne: menedżery schowka ich nie zapisują i nie trafiają do schowka uniwersalnego (iPhone, iPad).</p>
+      <div class="row-btns"><button class="btn" id="secHealth" type="button">Przegląd bezpieczeństwa…</button><button class="btn" id="secLog" type="button">Dziennik zdarzeń…</button></div></div>
+  </div>
+  <div class="group">
+    <div class="g-row col"><div><b>Kolejność sekcji w szczegółach konta</b><small>Możesz też przeciągać nagłówki sekcji bezpośrednio w szczegółach konta.</small></div>
+      <ol class="sec-order" id="secOrder"></ol>
+      <div class="row-btns"><button class="btn" id="secReset" type="button">Przywróć domyślną</button></div></div>
+  </div>
+  <div class="group">
+    <div class="g-row col"><div><b>Zmień hasło główne</b><small>Minimum 10 znaków. Po zmianie zrób nową kopię zapasową.</small></div>
+      <div class="grid2 fillw"><input type="password" class="field" id="newMp" placeholder="Nowe hasło"><input type="password" class="field" id="newMp2" placeholder="Powtórz hasło"></div>
+      <p class="err" id="mpErr"></p>
+      <button class="btn" id="changeMp" type="button">Zmień hasło</button></div>
+  </div>
+  <div class="group about">
+    <div class="g-row"><div class="about-ic"><svg viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg></div>
+      <div class="fill"><b>O programie</b><small id="aboutTxt"></small></div></div>
+  </div>
+  <div class="sheet-foot"><button class="btn primary" id="settingsClose" type="button">Gotowe</button></div>
+</dialog>
+
+<div id="toast" class="toast glass" role="status" aria-live="polite"></div>
+<div class="kdf-prog kdf-float glass" id="kdfAppProg" popover="manual" role="progressbar" aria-label="Postęp"><span class="kdf-lbl"></span><div class="kdf-track"><div class="kdf-fill"></div></div></div>
+<script src="app.js"></script>
+</body>
+</html>
