@@ -68,6 +68,10 @@ npm run dist:win   # instalator .exe i wersja przenośna
 
 Pełny opis funkcji, importu, synchronizacji z Microsoft 365, SMS-ów i ustawień bezpieczeństwa: **[docs/INSTRUKCJA.md](docs/INSTRUKCJA.md)**.
 
+## Licencja
+
+[MIT](LICENSE) – możesz swobodnie używać, zmieniać i rozpowszechniać, z zachowaniem informacji o autorze.
+
 ## Technologie
 
 Electron · Node.js · Web Crypto / scrypt · Microsoft Graph · ExcelJS
