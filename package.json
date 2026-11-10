@@ -5,7 +5,7 @@
   "description": "Szyfrowany skarbiec kont pocztowych i licencji Office dla administratora",
   "main": "main.js",
   "author": "Tomasz Marchewka",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "start": "electron .",
